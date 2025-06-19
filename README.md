@@ -107,6 +107,7 @@ Updates the visual style of all entries.
 | `MaxWidth`               | `number`    | Width of the debug UI                    |
 | `AnimateUpdates`         | `boolean`   | Flash on value changes                   |
 | `Visible`                | `boolean`   | Initial visibility toggle                |
+| `ColorByType`		   | `boolean`   | Toggles type-bsaed coloring of labels    |
 
 ### `uiDebug:clear(prefix?: string)`
 
