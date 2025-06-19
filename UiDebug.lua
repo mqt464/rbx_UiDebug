@@ -7,15 +7,24 @@ last update: 19th of June, 2025
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
 local uiDebug = {}
 local containerFrame: Frame
 local labels: {[string]: TextLabel} = {}
+local labelValues: {[string]: any} = {}
 local headers: {[string]: TextLabel} = {}
 local ttlTimers: {[string]: number} = {}
 local paused = false
+
+local typeColors = {
+	boolean = Color3.fromRGB(0, 255, 255),
+	number = Color3.fromRGB(255, 255, 0),
+	string = Color3.fromRGB(200, 200, 200),
+}
 
 local settings = {
 	Font = Enum.Font.Code,
@@ -30,7 +39,8 @@ local settings = {
 	IndentSize = 12,
 	Visible = true,
 	SortKeys = false,
-	AnimateUpdates = true
+	AnimateUpdates = true,
+	ColorByType = true
 }
 
 local function createGui()
@@ -38,7 +48,7 @@ local function createGui()
 
 	local screenGui = playerGui:FindFirstChild("uiDebugGui") or Instance.new("ScreenGui")
 	screenGui.Name = "uiDebugGui"
-	screenGui.IgnoreGuiInset = true
+	screenGui.IgnoreGuiInset = false
 	screenGui.ResetOnSpawn = false
 	screenGui.DisplayOrder = 999
 	screenGui.Parent = playerGui
@@ -71,38 +81,45 @@ local function applyPadding(label: TextLabel, indentLevel: number)
 	padding.Parent = label
 end
 
+local function animateFlash(label: TextLabel)
+	local tween = TweenService:Create(label, TweenInfo.new(0.25), {
+		BackgroundColor3 = settings.BackgroundColor3
+	})
+	label.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+	tween:Play()
+end
+
 local function createOrUpdateLabel(key: string, value: any, indentLevel: number)
-		local label = labels[key]
-		local displayKey = key:match("[^%.]+$") or key
-		if not label then
-			label = Instance.new("TextLabel")
-			label.Name = key
-			label.AutomaticSize = Enum.AutomaticSize.X
-			label.Size = UDim2.new(1, 0, 0, settings.TextSize + 4)
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.BorderSizePixel = 0
-			label.Parent = containerFrame
-			labels[key] = label
-		end
+	local label = labels[key]
+	local displayKey = key:match("[^%.]+$") or key
+	local valueChanged = labelValues[key] ~= value
 
-		label.Font = settings.Font
-		label.TextSize = settings.TextSize
-		label.TextColor3 = typeof(value) == "boolean" and Color3.fromRGB(0, 255, 255)
-			or typeof(value) == "number" and Color3.fromRGB(255, 255, 0)
-			or settings.TextColor3
-		label.TextStrokeTransparency = settings.TextStrokeTransparency
-		label.TextStrokeColor3 = settings.TextStrokeColor3
-		label.BackgroundColor3 = settings.BackgroundColor3
-		label.BackgroundTransparency = settings.BackgroundTransparency
-		label.Text = string.format("%s: %s", displayKey, tostring(value))
-		applyPadding(label, indentLevel)
+	if not label then
+		label = Instance.new("TextLabel")
+		label.Name = key
+		label.AutomaticSize = Enum.AutomaticSize.X
+		label.Size = UDim2.new(1, 0, 0, settings.TextSize + 4)
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.BorderSizePixel = 0
+		label.Parent = containerFrame
+		labels[key] = label
+	end
 
-		if settings.AnimateUpdates then
-			label.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-			task.delay(0.25, function()
-				label.BackgroundColor3 = settings.BackgroundColor3
-			end)
-		end
+	label.Font = settings.Font
+	label.TextSize = settings.TextSize
+	label.TextColor3 = settings.ColorByType and (typeColors[typeof(value)] or settings.TextColor3) or settings.TextColor3
+	label.TextStrokeTransparency = settings.TextStrokeTransparency
+	label.TextStrokeColor3 = settings.TextStrokeColor3
+	label.BackgroundColor3 = settings.BackgroundColor3
+	label.BackgroundTransparency = settings.BackgroundTransparency
+	label.Text = string.format("%s: %s", displayKey, tostring(value))
+	applyPadding(label, indentLevel)
+
+	if settings.AnimateUpdates and valueChanged then
+		animateFlash(label)
+	end
+
+	labelValues[key] = value
 end
 
 function uiDebug:set(key: string, value: any, options: {ttl: number}?)
@@ -136,6 +153,7 @@ function uiDebug:clear(prefix: string?)
 		if not prefix or key:sub(1, #prefix) == prefix then
 			label:Destroy()
 			labels[key] = nil
+			labelValues[key] = nil
 			ttlTimers[key] = nil
 		end
 	end
