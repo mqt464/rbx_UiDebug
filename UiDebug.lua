@@ -65,7 +65,7 @@ local function applyPadding(label: TextLabel, indentLevel: number)
 
 	local padding = Instance.new("UIPadding")
 	padding.PaddingLeft = UDim.new(0, settings.PaddingLeft + (indentLevel * settings.IndentSize))
-	padding.PaddingRight = UDim.new(0, 0)
+	padding.PaddingRight = UDim.new(0, 5)
 	padding.PaddingTop = UDim.new(0, 0)
 	padding.PaddingBottom = UDim.new(0, 0)
 	padding.Parent = label
